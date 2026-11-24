@@ -1,0 +1,78 @@
+name: Sub2API Daily
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 23 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt ruff pytest
+      - name: Offline tests
+        run: python -m pytest -q
+      - name: Compile
+        run: python -m compileall -q .
+      - name: Ruff
+        run: python -m ruff check .
+
+  daily:
+    needs: test
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    env:
+      SUB2API_ACCOUNTS: ${{ secrets.SUB2API_ACCOUNTS }}
+      SUB2API_SESSIONS: ${{ secrets.SUB2API_SESSIONS }}
+      SUB2API_SITE: ${{ secrets.SUB2API_SITE }}
+      SUB2API_EMAIL: ${{ secrets.SUB2API_EMAIL }}
+      SUB2API_PASSWORD: ${{ secrets.SUB2API_PASSWORD }}
+      SUB2API_ACCESS_TOKEN: ${{ secrets.SUB2API_ACCESS_TOKEN }}
+      SUB2API_USER_ID: ${{ secrets.SUB2API_USER_ID }}
+      SUB2API_PROXY: ${{ secrets.SUB2API_PROXY }}
+      SUB2API_WAIT_SECONDS: ${{ secrets.SUB2API_WAIT_SECONDS }}
+      PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
+      BARK_URL: ${{ secrets.BARK_URL }}
+      WECOM_WEBHOOK: ${{ secrets.WECOM_WEBHOOK }}
+      DINGTALK_WEBHOOK: ${{ secrets.DINGTALK_WEBHOOK }}
+      GENERIC_WEBHOOK_URL: ${{ secrets.GENERIC_WEBHOOK_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Credential preflight
+        id: credentials
+        shell: bash
+        run: |
+          if [ -z "${SUB2API_ACCOUNTS}" ] && [ -z "${SUB2API_SESSIONS}" ] && [ -z "${SUB2API_ACCESS_TOKEN}" ] && [ -z "${SUB2API_EMAIL}" ] && [ -z "${SUB2API_PASSWORD}" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Sub2API Daily::No Sub2API secret configured; skipping live run."
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Run check-in
+        if: steps.credentials.outputs.configured == 'true'
+        shell: bash
+        run: |
+          set -o pipefail
+          python sub2api_daily.py | tee sub2api-report.jsonl
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sub2api-report
+          path: sub2api-report.jsonl
+          if-no-files-found: ignore
