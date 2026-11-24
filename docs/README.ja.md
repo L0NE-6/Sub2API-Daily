@@ -6,7 +6,8 @@
 
 **Sub2API 毎日チェックイン · 複数アカウント · 状態と報酬の厳格な再読取 · JSONL**
 
-[简体中文](../README.md) · [English](README.en.md) · [繁體中文](README.zh-Hant.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Português (BR)](README.pt-BR.md)
+[简体中文](../README.md) · [English](README.en.md) · [繁體中文](README.zh-Hant.md) · **日本語** · [한국어](README.ko.md) · [Português (BR)](README.pt-BR.md)
+> バージョン：**v1.0.0**（2026-11-24）
 
 </div>
 
